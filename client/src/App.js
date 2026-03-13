@@ -15,7 +15,7 @@ import FarmerProfile from './pages/FarmerProfile';
 import ProductDetail from './ProductDetail';
 
 import VoiceUI from './components/VoiceUI';
-
+import AiPriceAdvisor from './pages/AiPriceAdvisor';
 function App() {
   return (
     <div className="min-h-screen">
@@ -46,6 +46,9 @@ function App() {
 
         {/* Product Details */}
         <Route path="/product/:productId" element={<ProductDetail />} />
+
+        {/* AI Price Advisor */}
+        <Route path="/ai-price" element={<AiPriceAdvisor />} />
       </Routes>
 
       {/* 🚀 Global AgriForge Voice UI */}

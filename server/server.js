@@ -38,6 +38,7 @@ app.use('/api/predictions', predictionRoutes);
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/ai-price', require('./routes/aiPrice'));
 
 // Error handling middleware (LAST)
 app.use((err, req, res, next) => {
