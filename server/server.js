@@ -4,63 +4,61 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 
+// 🔧 1. LOAD DOTENV FIRST
 dotenv.config();
+
+console.log('=== 🚀 ENV DEBUG ===');
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? '✅' : '❌');
+console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '✅' : '❌');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? '✅' : '❌');
+console.log('NODE_ENV:', process.env.NODE_ENV || 'dev');
+console.log('PORT:', process.env.PORT || 5000);
 
 const app = express();
 
-// ✅ MIDDLEWARE ORDER (CRITICAL - Best Practice)
-app.use(cors());                    // 1. CORS first
-app.use(express.json());           // 2. Body parsing
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // 3. Static files
+// 2. PRODUCTION MIDDLEWARE
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ✅ ROUTES (after middleware)
-const authRoutes = require('./routes/auth');
-const productRoutes = require('./routes/product');
-const farmersRoutes = require('./routes/farmers');
-const predictionRoutes = require('./routes/prediction');
-const logisticsRoutes = require('./routes/logistics');
-const orderRoutes = require('./routes/orders');
-const notificationRoutes = require('./routes/notifications');
+// 3. HEALTH CHECK
+app.get('/api/health', (req, res) => res.json({ status: 'OK', env: process.env.NODE_ENV, database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' }));
+app.get('/', (req, res) => res.json({ message: '🌾 Farmers Market API LIVE', version: '1.0.0' }));
 
-// Test route
-app.get('/', (req, res) => {
-  res.json({
-    message: 'AgriForge AI API running ✅',
-    endpoints: ['/api/farmers', '/api/products', '/api/auth', '/api/predictions', '/api/logistics', '/api/orders', '/api/notifications']
-  });
-});
-
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/farmers', farmersRoutes);
-app.use('/api/predictions', predictionRoutes);
-app.use('/api/logistics', logisticsRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/notifications', notificationRoutes);
+// 4. ALL ROUTES
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/products', require('./routes/product'));
+app.use('/api/farmers', require('./routes/farmers'));
+app.use('/api/predictions', require('./routes/prediction'));
+app.use('/api/logistics', require('./routes/logistics'));
+app.use('/api/orders', require('./routes/orders'));
+app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/ai-price', require('./routes/aiPrice'));
 app.use('/api/ai-crop-health', require('./routes/aiCropHealth'));
 
-// Error handling middleware (LAST)
+// 5. ERROR HANDLING
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  console.error('❌ SERVER ERROR:', err.stack);
+  res.status(500).json({ 
+    message: 'Internal Server Error', 
+    error: process.env.NODE_ENV === 'production' ? 'See server logs' : err.message 
+  });
 });
 
 const PORT = process.env.PORT || 5000;
 
-// Database + Server
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('✅ MongoDB connected');
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
-      console.log(`📡 Test endpoints:`);
-      console.log(`   → http://localhost:${PORT}/api/farmers`);
-      console.log(`   → http://localhost:${PORT}/api/products`);
-    });
-  })
-  .catch((err) => {
-    console.error('❌ MongoDB connection error:', err);
+// 6. DB CONNECTION + SERVER START (Graceful Fallback)
+mongoose.connect(process.env.MONGODB_URI || '', {
+  serverSelectionTimeoutMS: 5000 // Stop trying after 5 seconds
+})
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => {
+    console.log('⚠️ MongoDB connection failed:', err.message);
+    console.log('💡 Note: API is running but features requiring DB will fail.');
   });
+
+// Always start the server regardless of DB status
+app.listen(PORT, () => {
+  console.log(`🚀 Farmers Market Backend LIVE on port ${PORT}`);
+  console.log(`✅ Health Check: http://localhost:${PORT}/api/health`);
+});
