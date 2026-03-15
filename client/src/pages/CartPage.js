@@ -44,48 +44,15 @@ function CartPage() {
   const delivery = items.length ? 50 : 0;
   const total = subtotal + delivery;
 
-  const placeOrder = async () => {
+  const placeOrder = () => {
     if (!items.length) return;
-
-    const addressInput = document.getElementById('delivery-address');
-    const address = addressInput ? addressInput.value : '';
-    if (!address.trim()) {
-      alert('Please enter delivery address');
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
+    const token = localStorage.getItem('token');
+    if (!token) {
         alert('Please login to place an order');
-        navigate('/login');
+        navigate('/buyer-login'); // Use specific login
         return;
-      }
-
-      const orderPayload = {
-        items: items.map(it => ({
-          productId: it._id,
-          name: it.name,
-          quantityKg: it.quantityKg,
-          pricePerKg: it.pricePerKg
-        })),
-        totalAmount: total,
-        address
-      };
-
-      // REAL BACKEND INTEGRATION - THIS WILL TRIGGER ATOMIC STOCK REDUCTION
-      await api.post('/orders', orderPayload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      localStorage.removeItem('cart');
-      setItems([]);
-      alert("Order placed successfully! Stock has been updated.");
-      navigate('/orders');
-    } catch (err) {
-      console.error('Checkout error:', err);
-      alert(err.response?.data?.message || 'Failed to place order');
     }
+    navigate('/checkout-address');
   };
 
   return (
@@ -184,17 +151,6 @@ function CartPage() {
             </span>
           </div>
 
-          <div className="mb-3">
-            <p className="text-xs font-semibold text-emerald-900 mb-1">
-              Delivery Address
-            </p>
-            <textarea
-              id="delivery-address"
-              rows={3}
-              placeholder="Enter your full delivery address..."
-              className="w-full text-xs rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
 
           <button
             onClick={placeOrder}

@@ -1,0 +1,123 @@
+.orders-wrapper {
+    min-height: 100vh;
+    background: #f8fafc;
+}
+
+.orders-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+}
+
+.orders-container h1 {
+    font-size: 2rem;
+    color: #1e293b;
+    margin-bottom: 2rem;
+    font-weight: 700;
+}
+
+.orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.order-card {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.order-id-date {
+    display: flex;
+    flex-direction: column;
+}
+
+.order-id {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 0.95rem;
+}
+
+.order-date {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.order-status {
+    padding: 6px 14px;
+    border-radius: 30px;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.order-info {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.value {
+    font-weight: 600;
+    color: #334155;
+}
+
+.price { color: #059669; }
+
+.payment.paid { color: #10b981; }
+.payment.pending { color: #f59e0b; }
+
+.order-items {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+}
+
+.item-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #475569;
+    padding: 4px 0;
+}
+
+.addr-preview {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.orders-loading, .no-orders {
+    text-align: center;
+    padding: 4rem;
+    color: #64748b;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 640px) {
+    .order-info {
+        grid-template-columns: 1fr;
+    }
+}

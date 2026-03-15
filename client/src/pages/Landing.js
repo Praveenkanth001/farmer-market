@@ -25,6 +25,15 @@ function Landing() {
         </p>
 
         <div className="space-y-4">
+          {localStorage.getItem('role') === 'admin' && (
+            <Link
+              to="/admin-dashboard"
+              className="block w-full py-3 rounded-xl bg-slate-800 text-white font-semibold shadow hover:bg-slate-900"
+            >
+              🛡️ Go to Admin Dashboard
+            </Link>
+          )}
+
           <Link
             to="/farmer-login"
             className="block w-full py-3 rounded-xl bg-emerald-700 text-white font-semibold shadow hover:bg-emerald-800"

@@ -17,13 +17,19 @@ function BuyerLogin() {
     setError('');
     try {
       const res = await api.post('/auth/login', { email, password });
-      if (res.data.user.role !== 'buyer') {
-        return setError('This is not a buyer account');
-      }
+      
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('role', res.data.user.role);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      navigate('/market'); // go to products page
+      
+      if (res.data.user.role === 'admin') {
+        navigate('/admin-dashboard');
+      } else {
+        if (res.data.user.role !== 'buyer') {
+          return setError('This is not a buyer account');
+        }
+        navigate('/market'); 
+      }
     } catch (err) {
       setError('Invalid credentials');
     }

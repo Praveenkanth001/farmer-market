@@ -1,8 +1,32 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { api } from '../api';
 
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    if (token) {
+      fetchUnreadCount();
+      const interval = setInterval(fetchUnreadCount, 30000); // Poll every 30s
+      return () => clearInterval(interval);
+    }
+  }, [token]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await api.get('/notifications', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const unread = res.data.filter(n => !n.read).length;
+      setUnreadCount(unread);
+    } catch (err) {
+      console.error("Notif fetch error:", err);
+    }
+  };
 
   const linkClass = (path) =>
     `text-xs sm:text-sm px-2 ${
@@ -93,11 +117,20 @@ function Navbar() {
             🛒
           </button>
           <button
-            onClick={() => navigate('/orders')}
-            className="text-emerald-900/80 hover:text-emerald-900 text-sm"
-            title="My Orders"
+            onClick={() => {
+              const role = localStorage.getItem('role');
+              if (role === 'farmer') navigate('/farmer-orders');
+              else navigate('/my-orders');
+            }}
+            className="text-emerald-900/80 hover:text-emerald-900 text-sm relative"
+            title="Orders"
           >
             📦
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] h-3 w-3 flex items-center justify-center rounded-full animate-pulse">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
           <button
             onClick={handleLogout}

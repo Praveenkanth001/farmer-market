@@ -17,13 +17,19 @@ function FarmerLogin() {
     setError('');
     try {
       const res = await api.post('/auth/login', { email, password });
-      if (res.data.user.role !== 'farmer') {
-        return setError('This is not a farmer account');
-      }
+      
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('role', res.data.user.role);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      navigate('/farmer-dashboard'); // UPDATED: Go to farmer dashboard
+
+      if (res.data.user.role === 'admin') {
+        navigate('/admin-dashboard');
+      } else {
+        if (res.data.user.role !== 'farmer') {
+          return setError('This is not a farmer account');
+        }
+        navigate('/farmer-dashboard'); 
+      }
     } catch (err) {
       setError('Invalid credentials');
     }

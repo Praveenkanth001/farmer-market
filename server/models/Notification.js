@@ -5,7 +5,7 @@ const notificationSchema = new mongoose.Schema(
         recipientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
         title: { type: String, required: true },
         message: { type: String, required: true },
-        type: { type: String, enum: ['low_stock', 'system'], default: 'system' },
+        type: { type: String, enum: ['low_stock', 'new_order', 'system'], default: 'system' },
         read: { type: Boolean, default: false }
     },
     { timestamps: true }

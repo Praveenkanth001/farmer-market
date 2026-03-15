@@ -17,10 +17,13 @@ const AgriDoctor = () => {
     const [loadingStatus, setLoadingStatus] = useState("Consulting AI...");
     const [selectedImage, setSelectedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
-    const [detectionResult, setDetectionResult] = useState(null);
-
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+    
     const recognitionRef = useRef(null);
     const scrollRef = useRef(null);
+    const videoRef = useRef(null);
+    const canvasRef = useRef(null);
+    const activeStreamRef = useRef(null);
 
     useEffect(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -42,6 +45,58 @@ const AgriDoctor = () => {
     useEffect(() => {
         scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    useEffect(() => {
+        if (isCameraOpen) {
+            const initCamera = async () => {
+                try {
+                    // Try with ideal constraints first
+                    const constraints = { 
+                        video: { 
+                            facingMode: { ideal: 'environment' },
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        } 
+                    };
+                    let stream;
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    } catch (e) {
+                        console.warn("Ideal constraints failed, falling back to basic video", e);
+                        // Fallback to absolute minimum if system is being picky
+                        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    }
+
+                    activeStreamRef.current = stream;
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                        // Ensure it plays
+                        await videoRef.current.play();
+                    }
+                } catch (err) {
+                    console.error("Camera access error:", err);
+                    let msg = "Unable to access camera.";
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') 
+                        msg = "Camera access was denied. Please click the camera icon in your browser's address bar and select 'Allow'.";
+                    else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') 
+                        msg = "No camera found on this device.";
+                    else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') 
+                        msg = "Camera is already in use by another app (like Zoom or a different browser tab) or blocked by your system.";
+                    
+                    alert(`📸 Camera Error: ${msg}\n\nTroubleshooting:\n1. Close other tabs/apps using camera\n2. Refresh the page\n3. Use the 📁 icon as a backup (it also has a 'Take Photo' option!)`);
+                    setIsCameraOpen(false);
+                }
+            };
+            // Small delay to ensure the DOM element is mounted
+            const timer = setTimeout(initCamera, 100);
+            return () => clearTimeout(timer);
+        } else {
+            if (activeStreamRef.current) {
+                activeStreamRef.current.getTracks().forEach(track => track.stop());
+                activeStreamRef.current = null;
+            }
+        }
+    }, [isCameraOpen]);
 
     const sendMessage = async (text) => {
         if (!text.trim()) return;
@@ -93,7 +148,6 @@ const AgriDoctor = () => {
         if (file) {
             setSelectedImage(file);
             setImagePreview(URL.createObjectURL(file));
-            setDetectionResult(null);
         }
     };
 
@@ -108,9 +162,13 @@ const AgriDoctor = () => {
         formData.append("image", selectedImage);
 
         try {
-            const res = await axios.post('http://localhost:5000/api/disease/detect', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const config = {
+                headers: { 
+                    'Content-Type': 'multipart/form-data',
+                    'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : ''
+                }
+            };
+            const res = await axios.post('http://localhost:5000/api/disease/detect', formData, config);
             
             const result = res.data; // Now contains { disease, confidence }
             
@@ -125,16 +183,15 @@ const AgriDoctor = () => {
             setMessages(prev => [...prev, aiMsg]);
             
             // Add to history
-            const [crop, diagnosis] = result.disease.split('___');
             setHistory(prev => [{ 
-                crop: crop || 'Plant', 
-                diagnosis: diagnosis?.replace(/_/g, ' ') || 'Condition Detected', 
+                crop: result.disease.split(' ')[0], 
+                diagnosis: result.disease, 
                 date: 'Just Now' 
             }, ...prev]);
 
         } catch (err) {
             console.error("Detection error:", err);
-            const errorMessage = err.response?.data?.message || err.message || 'Unknown Error';
+            const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || 'Unknown Error';
             setMessages(prev => [...prev, { 
                 role: 'ai', 
                 text: `மன்னிக்கவும், படத்தைப் பகுப்பாய்வு செய்வதில் பிழை ஏற்பட்டது: ${errorMessage}` 
@@ -152,6 +209,41 @@ const AgriDoctor = () => {
         } else {
             setIsListening(true);
             recognitionRef.current.start();
+        }
+    };
+
+    const startCamera = () => {
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+            alert("⚠️ Camera access requires a secure connection (HTTPS). Please use localhost or an HTTPS URL.");
+            return;
+        }
+        setIsCameraOpen(true);
+    };
+
+    const stopCamera = () => {
+        setIsCameraOpen(false);
+    };
+
+    const capturePhoto = () => {
+        const canvas = canvasRef.current;
+        const video = videoRef.current;
+        if (canvas && video) {
+            // Add visual shutter effect
+            const container = video.parentElement;
+            container.classList.add('shutter-flash');
+            setTimeout(() => container.classList.remove('shutter-flash'), 200);
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            canvas.toBlob((blob) => {
+                const file = new File([blob], "captured-photo.jpg", { type: "image/jpeg" });
+                setSelectedImage(file);
+                setImagePreview(URL.createObjectURL(file));
+                
+                // Stop camera after short delay to allow visual feedback
+                setTimeout(stopCamera, 300);
+            }, 'image/jpeg');
         }
     };
 
@@ -209,9 +301,14 @@ const AgriDoctor = () => {
                                                 CONFIDENCE: {(m.analysisData.confidence * 100).toFixed(1)}%
                                             </span>
                                         </div>
-                                        <p><strong>🩺 Detected: {m.analysisData.disease.replace(/___/g, ' ').replace(/_/g, ' ')}</strong></p>
-                                        <p style={{fontSize: '11px', color: '#666', marginTop: '10px'}}>
-                                            Based on visual symptoms identified by our neural networks. Please consult a physical specialist for severe outbreaks.
+                                        <p><strong>🩺 Detected: {m.analysisData.disease}</strong></p>
+                                        <div style={{marginTop: '15px', padding: '10px', background: 'rgba(255,255,255,0.5)', borderRadius: '12px', fontSize: '12px'}}>
+                                            <p style={{marginBottom: '5px'}}><b>🔍 Symptoms:</b> {m.analysisData.symptoms}</p>
+                                            <p style={{marginBottom: '5px', color: '#00897b'}}><b>💊 Treatment:</b> {m.analysisData.treatment}</p>
+                                            <p style={{marginBottom: '0', color: '#004d40'}}><b>🛡️ Prevention:</b> {m.analysisData.prevention}</p>
+                                        </div>
+                                        <p style={{fontSize: '11px', color: '#666', marginTop: '10px', fontStyle: 'italic'}}>
+                                            Based on visual patterns identified by our plant pathology network.
                                         </p>
                                     </div>
                                 )}
@@ -255,11 +352,14 @@ const AgriDoctor = () => {
                                 <button className="analyze-btn" onClick={analyzeCrop}>Analyze Crop</button>
                             </div>
                         )}
-                        <label className="doc-btn upload-btn">
-                            📷
-                            <input type="file" accept="image/*" onChange={handleImageChange} style={{display: 'none'}} />
+                        <label className="doc-btn upload-btn" title="Upload Image">
+                            📁
+                            <input type="file" accept="image/*" capture="environment" onChange={handleImageChange} style={{display: 'none'}} />
                         </label>
-                        <button className={`doc-btn mic-btn ${isListening ? 'active' : ''}`} onClick={toggleListening}>
+                        <button className="doc-btn camera-btn" title="Take Photo" onClick={startCamera}>
+                            📸
+                        </button>
+                        <button className={`doc-btn mic-btn ${isListening ? 'active' : ''}`} title="Voice Search" onClick={toggleListening}>
                             {isListening ? '⏹️' : '🎤'}
                         </button>
                         <div className="input-wrapper">
@@ -295,6 +395,20 @@ const AgriDoctor = () => {
                         </ul>
                     </div>
                 </aside>
+                
+                {/* CAMERA MODAL */}
+                {isCameraOpen && (
+                    <div className="camera-modal">
+                        <div className="camera-container">
+                            <video ref={videoRef} autoPlay playsInline />
+                            <canvas ref={canvasRef} style={{ display: 'none' }} />
+                            <div className="camera-controls">
+                                <button className="capture-btn" onClick={capturePhoto}>●</button>
+                                <button className="close-camera" onClick={stopCamera}>✕</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
             </div>
         </div>

@@ -3,8 +3,10 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 
-// Import the AI service function
+// Import the AI service and models
 const detectPlantDisease = require("../ai/plantDiseaseService");
+const Diagnosis = require("../models/Diagnosis");
+const jwt = require("jsonwebtoken");
 
 // ==============================
 // MULTER STORAGE CONFIG
@@ -68,20 +70,52 @@ router.post("/detect", upload.single("image"), async (req, res) => {
 
     console.log("🤖 AI raw result:", aiResult);
 
-    // 3. Handle empty or failed AI results
-    if (!aiResult || aiResult.length === 0) {
+    // 3. Handle failed AI results
+    if (!aiResult) {
       console.log("⚠️ AI could not detect disease from the provided image");
       return res.status(500).json({
         message: "AI could not detect disease",
       });
     }
 
-    // 4. Return top result along with the full analysis
-    const topResult = aiResult[0];
+    // 4. Extract user from token if available
+    let userId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        userId = decoded.id;
+      } catch (err) {
+        console.log("⚠️ Guest scan (Invalid or no token)");
+      }
+    }
 
+    // 5. Save report to database
+    try {
+        const report = new Diagnosis({
+            user: userId,
+            crop: aiResult.disease.split(' ')[0] || "Plant",
+            diagnosisEn: aiResult.disease,
+            treatmentEn: aiResult.treatment,
+            preventionEn: aiResult.prevention,
+            confidence: aiResult.score,
+            image: req.file.filename,
+            timestamp: new Date()
+        });
+        await report.save();
+        console.log("💾 AI Report saved to DB");
+    } catch (saveErr) {
+        console.error("❌ Failed to save AI report:", saveErr.message);
+    }
+
+    // 6. Return the structured result
     res.json({
-      disease: topResult.label,
-      confidence: topResult.score,
+      disease: aiResult.disease,
+      confidence: aiResult.score,
+      treatment: aiResult.treatment,
+      prevention: aiResult.prevention,
+      symptoms: aiResult.symptoms,
       fullResult: aiResult,
     });
 

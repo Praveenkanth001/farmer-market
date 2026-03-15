@@ -38,6 +38,9 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/ai-price', require('./routes/aiPrice'));
 app.use('/api/ai-crop-health', require('./routes/aiCropHealth'));
 app.use('/api/disease', require('./routes/diseaseRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/address', require('./routes/address'));
+app.use('/api/payment', require('./routes/payment'));
 
 // 5. ERROR HANDLING
 app.use((err, req, res, next) => {

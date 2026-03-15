@@ -18,6 +18,14 @@ import VoiceUI from './components/VoiceUI';
 import AiPriceAdvisor from './pages/AiPriceAdvisor';
 import AiCropHealth from './pages/AiCropHealth';
 import AgriDoctor from './pages/AgriDoctor';
+import AdminDashboard from './pages/AdminDashboard';
+import CheckoutAddress from './pages/CheckoutAddress';
+import CheckoutSummary from './pages/CheckoutSummary';
+import CheckoutPayment from './pages/CheckoutPayment';
+import OrderSuccess from './pages/OrderSuccess';
+import MyOrders from './pages/MyOrders';
+import FarmerOrders from './pages/FarmerOrders';
+
 function App() {
   return (
     <div className="min-h-screen">
@@ -57,6 +65,19 @@ function App() {
 
         {/* Advanced AI Doctor Discussion Portal */}
         <Route path="/agri-doctor" element={<AgriDoctor />} />
+
+        {/* 🛡️ Admin Panel */}
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+
+        {/* 🛒 Checkout Flow */}
+        <Route path="/checkout-address" element={<CheckoutAddress />} />
+        <Route path="/checkout-summary" element={<CheckoutSummary />} />
+        <Route path="/checkout-payment" element={<CheckoutPayment />} />
+        <Route path="/order-success" element={<OrderSuccess />} />
+
+        {/* 📦 Order History */}
+        <Route path="/my-orders" element={<MyOrders />} />
+        <Route path="/farmer-orders" element={<FarmerOrders />} />
       </Routes>
 
       {/* 🚀 Global AgriForge Voice UI */}
