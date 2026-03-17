@@ -69,3 +69,6 @@ app.listen(PORT, () => {
   console.log(`✅ Health Check: http://localhost:${PORT}/api/health`);
   console.log('🌱 AI Plant Disease Detection API Ready');
 });
+
+const cors = require("cors");
+app.use(cors());
